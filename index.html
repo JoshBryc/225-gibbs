@@ -185,6 +185,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .form-stack{display:grid;gap:16px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.contact-head{display:grid;gap:2px;font-size:14.5px;margin-bottom:-6px}
+.contact-head b{font-size:15px}
+.field-err{color:var(--stop);font-weight:600;font-size:14.5px;margin-top:-6px}
 .form-foot .muted{font-size:14px;flex:1;min-width:200px}
 
 /* match panel */
@@ -488,10 +491,14 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
               <input id="gName" class="input input-big" placeholder="e.g., Jessica and Eli Arner" maxlength="120" required>
             </div>
             <div id="matchPanel" class="match" aria-live="polite"></div>
+            <div class="field"><label for="gHow">How you know them <span class="opt">optional</span></label><input id="gHow" class="input" placeholder="Neighbors, church, Rotary" maxlength="240"></div>
+            <div class="contact-head"><b>Contact</b><span class="muted">We need an email or phone for anyone not on BRYC&rsquo;s list so we can send their invitation. Address is optional.</span></div>
             <div class="row2">
-              <div class="field"><label for="gHow">How you know them <span class="opt">optional</span></label><input id="gHow" class="input" placeholder="Neighbors, church, Rotary" maxlength="240"></div>
-              <div class="field"><label for="gContact">Email or phone <span class="opt">optional</span></label><input id="gContact" class="input" maxlength="160"></div>
+              <div class="field"><label for="gEmail">Email</label><input id="gEmail" class="input" type="email" inputmode="email" autocomplete="off" maxlength="160"></div>
+              <div class="field"><label for="gPhone">Phone</label><input id="gPhone" class="input" type="tel" inputmode="tel" autocomplete="off" maxlength="40"></div>
             </div>
+            <div class="field"><label for="gAddress">Mailing address <span class="opt">optional</span></label><input id="gAddress" class="input" autocomplete="off" placeholder="Street, city, ZIP" maxlength="200"></div>
+            <p class="field-err" id="contactErr" role="alert" hidden></p>
             <div class="form-foot">
               <button class="btn-gold" id="addBtn" type="submit">Add to the list</button>
               <span class="muted">You&rsquo;ll be their follow-up lead. We can shuffle at the December meeting.</span>
@@ -1025,7 +1032,7 @@ function deadlineText(){ const d = parseDay(S.settings.deadline); return d ? apD
 function stepsHtml(){
   const per = +S.settings.per_person || 25;
   return [
-    ['Add the people you&rsquo;d invite', `Aim for ${per} households by ${esc(deadlineText())}. Couples count as one. Think neighbors, church, clubs, work and old friends who&rsquo;d enjoy an evening at the Gibbs home and hearing about BRYC.`],
+    ['Add the people you&rsquo;d invite', `Aim for ${per} households by ${esc(deadlineText())}. Couples count as one. For anyone not on BRYC&rsquo;s list, add an email or phone. Think neighbors, church, clubs, work and old friends who&rsquo;d enjoy an evening at the Gibbs home and hearing about BRYC.`],
     ['Read the tag that pops up', 'As you type, we show whether they&rsquo;re a current donor, lapsed donor, prospect or on the do-not-contact list. Lapsed donors and people new to BRYC are great adds: their gifts are matched. Please don&rsquo;t invite anyone marked Do not contact.'],
     ['Someone beat you to it?', 'Pick one: <b>I can help!</b>, <b>Let me take this one!</b>, <b>Mention me</b> or let them have it. No one gets invited twice.'],
     ['Follow up in January', 'At our December meeting we&rsquo;ll confirm who reaches out to whom. After invitations go out, call or text the people you&rsquo;re leading and nudge them to come.'],
@@ -1177,6 +1184,7 @@ function explainDonor(d){
   if (d.status === 'prospect') lines.push('<b>Prospect.</b> BRYC wants to get to know them. If they’ve never given, their first gift would be matched.');
   if (d.status === 'dnc') lines.push('<b>Do not contact.</b> They asked BRYC not to send solicitations. You can still add them, and Josh will take a look.');
   if (d.tags.includes('pf')) lines.push('<b>Persistence Fund conversation.</b> Lucas or Josh is already talking with them. Josh will check in before invitations go out.');
+  if (d.status === 'active' || d.status === 'lapsed') lines.push('<span class="muted">BRYC should have their contact info, so email and phone are optional for them.</span>');
   if (d.tags.includes('225')) lines.push('Gave during 225 Gives before.');
   if (d.tags.includes('gave')) lines.push('Has given to BRYC before.');
   return lines.map(l => `<p>${l}</p>`).join('');
@@ -1193,13 +1201,21 @@ $('#addForm').addEventListener('submit', e => {
   const name = nameEl.value.trim().replace(/\s+/g, ' ');
   if (!name) { nameEl.focus(); return; }
   if (!S.sel && !S.selDismissed) { const st = donorMatches(name, false).filter(x => x.strong); if (st.length === 1) S.sel = st[0].d.id; }
-  const entry = { name, how: $('#gHow').value.trim(), contact: $('#gContact').value.trim(), donorId: S.sel || '' };
+  const entry = { name, how: $('#gHow').value.trim(), email: $('#gEmail').value.trim(), phone: $('#gPhone').value.trim(), address: $('#gAddress').value.trim(), donorId: S.sel || '' };
   const dup = guestMatches(name, entry.donorId).find(x => x.strong);
   if (dup) { openDupe(dup.g, entry); return; }
+  if (!contactOk(entry)) return;
   addGuest(entry, $('#addBtn'));
 });
+function contactOk(entry){
+  const err = $('#contactErr');
+  if (entry.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.email)) { err.textContent = 'That email doesn' + '\u2019' + 't look right. Check it and try again.'; err.hidden = false; $('#gEmail').focus(); return false; }
+  if (!entry.donorId && !entry.email && !entry.phone) { err.textContent = 'They' + '\u2019' + 're not on BRYC' + '\u2019' + 's list, so add an email or phone for their invitation.'; err.hidden = false; $('#gEmail').focus(); return false; }
+  err.hidden = true; return true;
+}
+['#gEmail', '#gPhone'].forEach(sel => $(sel).addEventListener('input', () => { $('#contactErr').hidden = true; }));
 function resetAddForm(){
-  nameEl.value = ''; $('#gHow').value = ''; $('#gContact').value = '';
+  nameEl.value = ''; ['#gHow', '#gEmail', '#gPhone', '#gAddress'].forEach(sel => { $(sel).value = ''; }); $('#contactErr').hidden = true;
   S.sel = null; S.selDismissed = false; $('#matchPanel').innerHTML = '';
   if (S.view === 'add') nameEl.focus();
 }
@@ -1213,12 +1229,12 @@ const CHEERS = [
 function addGuest(entry, fromEl){
   const d = entry.donorId ? S.donorById.get(entry.donorId) : null;
   const hold = !!(d && (d.status === 'dnc' || d.tags.includes('pf')));
-  const tmp = { id: 'tmp-' + Math.random().toString(36).slice(2), name: entry.name, how: entry.how, contact: entry.contact, by: me(), lead: me(),
+  const tmp = { id: 'tmp-' + Math.random().toString(36).slice(2), name: entry.name, how: entry.how, email: entry.email || '', phone: entry.phone || '', address: entry.address || '', by: me(), lead: me(),
     helpers: [], mentions: [], status: RSVP[0], donorId: entry.donorId, hold, addedAt: new Date().toISOString(), _tmp: true };
   const total = S.guests.length + 1, mine = S.guests.filter(g => g.by === me()).length + 1;
   const goal = +S.settings.invite_goal || 150, per = +S.settings.per_person || 25;
   const rect = fromEl && document.body.contains(fromEl) ? fromEl.getBoundingClientRect() : null;
-  write('addGuest', { name: entry.name, how: entry.how, contact: entry.contact, donorId: entry.donorId, hold },
+  write('addGuest', { name: entry.name, how: entry.how, email: entry.email || '', phone: entry.phone || '', address: entry.address || '', donorId: entry.donorId, hold },
     () => { S.guests.push(tmp); }, () => { S.guests = S.guests.filter(g => g !== tmp); }).catch(() => {});
   if (fromEl === $('#addBtn')) resetAddForm();
   const r = fromEl === $('#addBtn') ? $('#addBtn').getBoundingClientRect() : rect;
@@ -1265,7 +1281,7 @@ function openDupe(g, entry){
     if (b.classList.contains('modal-back') && ev.target !== b) return;
     const k = b.dataset.k;
     if (k === 'close') { close(); return; }
-    if (k === 'force') { close(); addGuest(entry, S.view === 'add' ? $('#addBtn') : null); return; }
+    if (k === 'force') { close(); if (S.view === 'add' && !contactOk(entry)) return; addGuest(entry, S.view === 'add' ? $('#addBtn') : null); return; }
     if (k === 'let') { close(); toast(mineAlready ? 'Already yours' : `All good. ${lead} has it.`, ''); if (S.view === 'add') resetAddForm(); return; }
     const rect = b.getBoundingClientRect();
     close();
@@ -1342,7 +1358,9 @@ function guestRow(g, isDup){
     return `<article class="grow" data-id="${esc(g.id)}"><form class="edit-grid" data-edit="${esc(g.id)}">
       <div class="field"><label>Name</label><input class="input" name="name" value="${esc(g.name)}" maxlength="120" required></div>
       <div class="row2"><div class="field"><label>How they know them</label><input class="input" name="how" value="${esc(g.how)}" maxlength="240"></div>
-      <div class="field"><label>Email or phone</label><input class="input" name="contact" value="${esc(g.contact)}" maxlength="160"></div></div>
+      <div class="field"><label>Email</label><input class="input" type="email" name="email" value="${esc(g.email)}" maxlength="160"></div></div>
+      <div class="row2"><div class="field"><label>Phone</label><input class="input" type="tel" name="phone" value="${esc(g.phone)}" maxlength="40"></div>
+      <div class="field"><label>Mailing address</label><input class="input" name="address" value="${esc(g.address)}" maxlength="200"></div></div>
       <div class="field"><label>Notes</label><input class="input" name="notes" value="${esc(g.notes)}" maxlength="400"></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" name="hold"${g.hold ? ' checked' : ''}> Josh to review before inviting</label>
       <div style="display:flex;gap:8px"><button class="btn-gold" style="padding:10px 16px;font-size:15px" type="submit">Save</button><button class="btn" type="button" data-act="cancel-edit">Cancel</button></div>
@@ -1350,7 +1368,7 @@ function guestRow(g, isDup){
   }
   return `<article class="grow${g._tmp ? ' tmp' : ''}" data-id="${esc(g.id)}">
     <div><h3 class="g-name">${esc(g.name)}</h3>${tags ? `<div class="tags">${tags}</div>` : ''}
-      ${(g.how || g.contact || g.notes) ? `<p class="g-how">${[g.how, g.contact, g.notes].filter(Boolean).map(esc).join(' · ')}</p>` : ''}</div>
+      ${(g.how || g.email || g.phone || g.address || g.notes) ? `<p class="g-how">${[g.how, g.email, g.phone, g.address, g.notes].filter(Boolean).map(esc).join(' · ')}</p>` : ''}</div>
     <div class="g-people">
       <div class="who"><span class="lbl">Lead</span><select class="sel-sm" data-act="lead" aria-label="Follow-up lead for ${esc(g.name)}" style="width:auto"${g._tmp ? ' disabled' : ''}>${rosterOptions(g.lead)}</select></div>
       ${helpers.length ? `<div class="who"><span class="lbl">Helping</span>${helpers.map(personChip).join('')}</div>` : ''}
@@ -1403,9 +1421,9 @@ $$('.gbox').forEach(box => {
     const f = e.target.closest('[data-edit]'); if (!f) return;
     e.preventDefault();
     const g = S.guests.find(x => x.id === f.dataset.edit); if (!g) return;
-    const fields = { name: f.name.value.trim(), how: f.how.value.trim(), contact: f.contact.value.trim(), notes: f.notes.value.trim(), hold: f.hold.checked };
+    const fields = { name: f.name.value.trim(), how: f.how.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), address: f.address.value.trim(), notes: f.notes.value.trim(), hold: f.hold.checked };
     if (!fields.name) return;
-    const prev = { name: g.name, how: g.how, contact: g.contact, notes: g.notes, hold: g.hold };
+    const prev = { name: g.name, how: g.how, email: g.email, phone: g.phone, address: g.address, notes: g.notes, hold: g.hold };
     S.editingGuest = null;
     write('updateGuest', { id: g.id, fields }, () => Object.assign(g, fields), () => Object.assign(g, prev)).catch(() => {});
     rerenderGuests();
@@ -1450,7 +1468,7 @@ $('#donorList').addEventListener('click', e => {
   if (e.target.closest('[data-more]')) { S.donorLimit += 200; renderDonors(); return; }
   const b = e.target.closest('[data-add]'); if (!b) return;
   const d = S.donorById.get(b.dataset.add); if (!d) return;
-  const entry = { name: donorAsGuestName(d), how: '', contact: '', donorId: d.id };
+  const entry = { name: donorAsGuestName(d), how: '', email: '', phone: '', address: '', donorId: d.id };
   const dup = guestMatches(entry.name, d.id).find(x => x.strong);
   if (dup) { openDupe(dup.g, entry); return; }
   addGuest(entry, b);
