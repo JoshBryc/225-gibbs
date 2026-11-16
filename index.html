@@ -635,6 +635,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
             <h2>The plan so far</h2>
             <dl class="facts">
               <dt>When</dt><dd>Thursday, April 22, 6 p.m. It&rsquo;s BRYC&rsquo;s nonprofit anniversary.</dd>
+              <dt>Where</dt><dd>BRAF, in the River Mark building downtown.</dd>
               <dt>What</dt><dd>A large cocktail hour with short remarks. Not a dinner or a gala.</dd>
               <dt>Who</dt><dd>Current supporters plus partners like the EBR school board and legislators. Lucas&rsquo;s target is 200&ndash;250.</dd>
               <dt>Giving</dt><dd>Not an ask event. Reply cards will be on hand for anyone who wants to give.</dd>
@@ -644,33 +645,18 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
           <div class="card">
             <h2>Still to decide</h2>
             <ul class="decide">
-              <li><b>Venue</b><span class="muted">BRAF or City Club. The guest count has to fit the room.</span></li>
-              <li><b>Guest list size</b><span class="muted">All current supporters, or donors above a certain level plus partners?</span></li>
+              <li><b>Guest list size</b><span class="muted">BRAF fits 100 or more standing, and Lucas&rsquo;s target is 200&ndash;250. All current supporters, or donors above a certain level plus partners?</span></li>
               <li><b>Save-the-date timing</b><span class="muted">After Jan. 1 is the working plan. Some want it out before the holidays.</span></li>
-              <li><b>Marquee sponsor</b><span class="muted">One sponsor is the goal. Set the venue first so the ask is clear.</span></li>
+              <li><b>Marquee sponsor</b><span class="muted">One sponsor is the goal. Now that the venue is set, the ask is clear.</span></li>
             </ul>
           </div>
           <div class="card span2">
-            <h2>Venue options</h2>
-            <div class="versus">
-              <div>
-                <h3>BRAF</h3>
-                <ul>
-                  <li>Holding April 22 for us. Their space in the River Mark building fits 100 or more standing.</li>
-                  <li>BRYC would need a BRAF membership, about $500. What else they&rsquo;d cover is unclear.</li>
-                  <li>Parking: a paid garage next door that BRAF validates, plus lots across Laurel Street.</li>
-                </ul>
-              </div>
-              <div>
-                <h3>City Club</h3>
-                <ul>
-                  <li>Free when a member sponsors it. A recent breakfast there ran about $2,000 with food.</li>
-                  <li>The main room is comfortable. Upstairs runs warm. Some doubt it fits more than 100 to 150.</li>
-                  <li>Guests know what to expect. Anita Byrne may help with the lot behind the building.</li>
-                </ul>
-              </div>
-            </div>
-            <p class="muted" style="margin-top:14px">Either way, valet is the favorite parking fix, and a sponsor could cover it. The shuttle idea is out.</p>
+            <h2>Venue: BRAF</h2>
+            <ul style="margin:0;padding-left:18px;display:grid;gap:6px;font-size:15px">
+              <li>BRAF is holding April 22 for us. Its space in the River Mark building downtown fits 100 or more standing.</li>
+              <li>BRYC needs a BRAF membership, about $500. Josh is asking what else BRAF will cover: space, food, drinks and parking.</li>
+              <li>Parking: valet is the favorite fix, and a sponsor could cover it. There&rsquo;s also a paid garage next door that BRAF validates, plus lots across Laurel Street.</li>
+            </ul>
           </div>
           <div class="card">
             <h2>Giving Week</h2>
@@ -1018,12 +1004,9 @@ const me = () => S.who;
 const isMine = g => g.by === me() || g.lead === me() || (g.helpers||[]).includes(me()) || (g.mentions||[]).includes(me());
 const ownerHas = (owner, name) => String(owner||'').split(/\s*(?:\+|,|&|\band\b)\s*/i).map(s => s.trim().toLowerCase()).includes(String(name||'').toLowerCase());
 function isMyTodo(t){
-  if (ownerHas(t.owner, me())) return true;
-  const o = String(t.owner||'').toLowerCase(), m = me().toLowerCase();
-  if (o === 'everyone') return true;
-  if (o === 'staff') return STAFF.includes(m);
-  if (o === 'board') return BOARD.includes(m);
-  return false;
+  const m = me().toLowerCase();
+  return String(t.owner||'').split(/\s*(?:\+|,|&|\band\b)\s*/i).map(x => x.trim().toLowerCase()).some(o =>
+    o === m || o === 'everyone' || (o === 'staff' && STAFF.includes(m)) || (o === 'board' && BOARD.includes(m)));
 }
 function rosterOptions(selected, extra){
   const r = (S.settings.roster || []).slice();
