@@ -583,7 +583,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <details class="card about" open>
           <summary>How to read this list</summary>
           <dl>
-            <dt><span class="pill active">Current donor</span></dt><dd>Gives to BRYC now or is on this year&rsquo;s giving plan.</dd>
+            <dt><span class="pill active">Current donor</span></dt><dd>Gives to BRYC now or is on this year&rsquo;s giving plan. This event is focused on new people, so Josh will check whether a current donor should still be invited.</dd>
             <dt><span class="pill lapsed">Lapsed donor</span></dt><dd>Hasn&rsquo;t given since 2024. If you know one of them well, add them. A personal invitation is the best way back, and their gift is matched.</dd>
             <dt><span class="pill prospect">Prospect</span></dt><dd>Someone BRYC wants to get to know. Some have given a little; some not yet.</dd>
             <dt><span class="pill dnc">Do not contact</span></dt><dd>Asked BRYC not to send solicitations. Please don&rsquo;t invite them.</dd>
@@ -1032,8 +1032,8 @@ function deadlineText(){ const d = parseDay(S.settings.deadline); return d ? apD
 function stepsHtml(){
   const per = +S.settings.per_person || 25;
   return [
-    ['Add the people you&rsquo;d invite', `Aim for ${per} households by ${esc(deadlineText())}. Couples count as one. For anyone not on BRYC&rsquo;s list, add an email or phone. Think neighbors, church, clubs, work and old friends who&rsquo;d enjoy an evening at the Gibbs home and hearing about BRYC.`],
-    ['Read the tag that pops up', 'As you type, we show whether they&rsquo;re a current donor, lapsed donor, prospect or on the do-not-contact list. Lapsed donors and people new to BRYC are great adds: their gifts are matched. Please don&rsquo;t invite anyone marked Do not contact.'],
+    ['Add the people you&rsquo;d invite', `Aim for ${per} households by ${esc(deadlineText())}. Couples count as one. Focus on people who are new to BRYC: neighbors, church, clubs, work and old friends who&rsquo;d enjoy an evening at the Gibbs home. For anyone not on BRYC&rsquo;s list, add an email or phone.`],
+    ['Read the tag that pops up', 'As you type, we show whether they&rsquo;re a current donor, lapsed donor, prospect or on the do-not-contact list. New people and lapsed donors come first: their gifts are matched. Josh will check on current donors. Please don&rsquo;t invite anyone marked Do not contact.'],
     ['Someone beat you to it?', 'Pick one: <b>I can help!</b>, <b>Let me take this one!</b>, <b>Mention me</b> or let them have it. No one gets invited twice.'],
     ['Follow up in January', 'At our December meeting we&rsquo;ll confirm who reaches out to whom. After invitations go out, call or text the people you&rsquo;re leading and nudge them to come.'],
   ].map((s, i) => `<li><span class="stepnum">${i + 1}</span><b>${s[0]}</b><p>${s[1]}</p></li>`).join('');
@@ -1055,7 +1055,7 @@ function openWelcome(){
       <h2 id="wTitle">Welcome, ${esc(me())}!</h2>
       <p class="sub">We want 50 people at the Gibbs home on Jan. 28, which means about 150 households invited. Here&rsquo;s your part.</p>
       <ol class="welcome-steps">
-        <li><b>Add at least ${per} households</b> by ${esc(deadlineText())} on the <b>Add names</b> page.</li>
+        <li><b>Add at least ${per} households</b> by ${esc(deadlineText())} on the <b>Add names</b> page. Focus on people who are new to BRYC.</li>
         <li><b>Watch the tag</b> that pops up as you type. It tells you if they&rsquo;re already connected to BRYC.</li>
         <li><b>If someone already added them</b>, choose to help, take the lead, be mentioned or let them have it.</li>
         <li><b>Check My page</b> anytime to see everyone you&rsquo;re leading, helping or being mentioned to.</li>
@@ -1179,7 +1179,7 @@ function renderMatch(){
 }
 function explainDonor(d){
   const lines = [];
-  if (d.status === 'active') lines.push('<b>Current donor.</b> They give to BRYC now. A personal invitation from you will mean a lot.');
+  if (d.status === 'active') lines.push('<b>Current donor.</b> They already give to BRYC, and this event is focused on new people. You can still add them; Josh will check whether they should be invited.');
   if (d.status === 'lapsed') lines.push('<b>Lapsed donor.</b> They haven’t given since 2024. A personal invitation is the best way back, and their gift would be matched.');
   if (d.status === 'prospect') lines.push('<b>Prospect.</b> BRYC wants to get to know them. If they’ve never given, their first gift would be matched.');
   if (d.status === 'dnc') lines.push('<b>Do not contact.</b> They asked BRYC not to send solicitations. You can still add them, and Josh will take a look.');
@@ -1228,7 +1228,7 @@ const CHEERS = [
 ];
 function addGuest(entry, fromEl){
   const d = entry.donorId ? S.donorById.get(entry.donorId) : null;
-  const hold = !!(d && (d.status === 'dnc' || d.tags.includes('pf')));
+  const hold = !!(d && (d.status === 'dnc' || d.status === 'active' || d.tags.includes('pf')));
   const tmp = { id: 'tmp-' + Math.random().toString(36).slice(2), name: entry.name, how: entry.how, email: entry.email || '', phone: entry.phone || '', address: entry.address || '', by: me(), lead: me(),
     helpers: [], mentions: [], status: RSVP[0], donorId: entry.donorId, hold, addedAt: new Date().toISOString(), _tmp: true };
   const total = S.guests.length + 1, mine = S.guests.filter(g => g.by === me()).length + 1;
@@ -1240,7 +1240,7 @@ function addGuest(entry, fromEl){
   const r = fromEl === $('#addBtn') ? $('#addBtn').getBoundingClientRect() : rect;
   celebrate(r, total % 25 === 0 || mine === per ? 'big' : 'add');
   let sub = '';
-  if (d) sub = { active: 'Current BRYC donor. Great add.', lapsed: 'Lapsed donor. Their gift would be matched.', prospect: 'A BRYC prospect. Nice.', dnc: 'Heads-up: they asked BRYC not to solicit them. Josh will take a look.' }[d.status] || '';
+  if (d) sub = { active: 'Current BRYC donor. Josh will check whether they should be invited.', lapsed: 'Lapsed donor. Their gift would be matched.', prospect: 'A BRYC prospect. Nice.', dnc: 'Heads-up: they asked BRYC not to solicit them. Josh will take a look.' }[d.status] || '';
   if (d && d.tags.includes('pf')) sub = 'Josh will check in first. They’re in a Persistence Fund conversation.';
   if (!d) sub = 'If they’re new to BRYC, their first gift would be matched.';
   if (total % 25 === 0) sub = `That's ${total} households. ${Math.round(total / goal * 100)}% of the way to ${goal}!`;
